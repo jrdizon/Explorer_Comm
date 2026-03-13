@@ -1,5 +1,5 @@
 # Explorer_Comm
-Written by Joseph Dizon
+Written by Joseph Dizon rbdizon@yahoo.com
 
 Explorer_Comm is a desktop application written in Java. Its purpose is to run scripts written in Forth.
 This can be useful for automating communication with a target device such as ESP32.
