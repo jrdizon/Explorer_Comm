@@ -1,0 +1,24 @@
+# Explorer_Comm
+Written by Joseph Dizon
+
+Explorer_Comm is a desktop application written in Java. Its purpose is to run scripts written in Forth.
+This can be useful for automating communication with a target device such as ESP32.
+Communication can be done using text commands sent through serial port or HTTP request
+
+System Requirement: Java Runtime Environment
+Some knowledge of the Forth language is necessary
+
+Download and put (or unzip) all the files in the same folder.
+To start the app in Linux, execute the file "Explorer_Comm.sh".
+In Windows, doubleclick the file "Explorer_Comm.jar" (assuming Java is the default for .jar files).
+
+The script file "ESP32.for" is loaded as specified in the configuration file "explorer.cfg".
+
+The upper text window is the input or script editor contains the script.
+The lower text window is the output contains the result of the script.
+
+To run the "start" function, click the 'Run "start"' button.
+
+To run the script starting from a specific line in the script editor, put the cursor anywhere in the line then click the button "Exec Line (F11)" or press F11.
+
+Resources for the Forth language can be found in the internet.
