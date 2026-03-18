@@ -1,13 +1,52 @@
 # ESP32.for
-# 
 #
-:start
+#
+:start showHttp ;
 
-"List" "list10" "btnList1" panel.addButton
-"List Functions" "list20" "btnList2" panel.addButton
-5 panel.addGap
-"Debug ON" "debug1" "btnDebug1" panel.addButton
-"Debug OFF" "debug0" "btnDebug0" panel.addButton
+:showHttp
+
+panel.start
+
+10 panel.addGap
+"eyes" "inpFunc3" panel.addInput
+"Go" "goFunc3" "btnGF3" panel.addButton
+
+20 panel.addGap
+"ESP32 URL" panel.addLabel
+"http://10.0.0.50/" "inpHttp" panel.addInput
+
+"selectHttp" "selHttp" panel.addSelector
+"http://10.0.0.50/" "selHttp" panel.addOption
+"http://10.0.0.51/" "selHttp" panel.addOption
+
+10 panel.addGap
+"Delay After Send" panel.addLabel
+"0.0" "delay" panel.addInput
+
+10 panel.addGap
+"Get Info" "getInfo" "btnInfo" panel.addButton
+"LED 1" "led_1" "btnLED1" panel.addButton
+"LED 0" "led_0" "btnLED0" panel.addButton
+
+10 panel.addGap
+"gpio?pin=10&mode=out" "chars2" panel.addInput
+"Send" "sendChars2" "btnSC2" panel.addButton
+
+10 panel.addGap
+"gpio?pin=10&val=0" "chars3" panel.addInput
+"Send" "sendChars3" "btnSC3" panel.addButton
+
+10 panel.addGap
+"gpio?pin=10&val=1" "chars4" panel.addInput
+"Send" "sendChars4" "btnSC4" panel.addButton
+
+;
+
+######################################## end of start
+
+:showSerial
+
+panel.start
 
 10 panel.addGap
 "Serial Port Number" panel.addLabel
@@ -27,34 +66,20 @@
 "func2" "inpFunc3" panel.addInput
 "Go" "goFunc3" "btnGF3" panel.addButton
 
-10 panel.addGap
-"D600|200|10|&" "chars" panel.addInput
-"Send" "sendChars" "btnSC" panel.addButton
-
-10 panel.addGap
-"gpio?pin=10&mode=out" "chars2" panel.addInput
-"Send" "sendChars2" "btnSC2" panel.addButton
-
-10 panel.addGap
-"gpio?pin=10&val=0" "chars3" panel.addInput
-"Send" "sendChars3" "btnSC3" panel.addButton
-
-10 panel.addGap
-"gpio?pin=10&val=1" "chars4" panel.addInput
-"Send" "sendChars4" "btnSC4" panel.addButton
-
-10 panel.addGap
-"Send Stop Run" "sendStopRun" "btnStop" panel.addButton
-
-20 panel.addGap
-"ESP32 URL" panel.addLabel
-"http://10.0.0.50/" "inpHttp" panel.addInput
-
-"selectHttp" "selHttp" panel.addSelector
-"http://10.0.0.50/" "selHttp" panel.addOption
-"http://10.0.0.51/" "selHttp" panel.addOption
-
+;
 ######################################## end of start
+
+:panel.start
+panel.clear
+0.1 sleep
+"List" "list10" "btnList1" panel.addButton
+"List Functions" "list20" "btnList2" panel.addButton
+5 panel.addGap
+"Debug ON" "debug1" "btnDebug1" panel.addButton
+"Debug OFF" "debug0" "btnDebug0" panel.addButton
+5 panel.addGap
+"HTTP" "showHttp" "btnHttp" panel.addButton
+"SERIAL" "showSerial" "btnSerail" panel.addButton
 ;
 
 list10: list ;
@@ -62,26 +87,33 @@ list20: list2 ;
 debug1: debug_on ;
 debug0: debug_off ;
 
-ser_open:
-"inpSerNum" panel.getValue dup "Serial#" .. . " open" .
-$num Serial.open
-;
+:ser_open
+  "inpSerNum" panel.getValue dup "Serial#" .. . " open" .
+  $num Serial.open
+  ;
 
-ser_close:
-Serial.close
-"Serial Port closed." ..
-;
+:ser_close
+  Serial.close
+  "Serial Port closed." ..
+  ;
 
 selectHttp: "selHttp" panel.getValue "inpHttp" panel.setValue ;
 
 //--
 
-.errorColor: dup "Error" $contains dup if dup2 200 0 0 .color endif not if 0 120 0 .color } ;
+.errorColor: dup "Error" $contains dup if dup2 200 0 0 .color endif not if 0 120 0 .color endif ;
 //--
 esp32.send:
 "inpHttp" panel.getValue swap $+ http.get
-.errorColor " " .
-0.405 sleep ;
+  .errorColor CR
+  "delay" panel.getValue $num 0 > if "delay" panel.getValue $num sleep endif
+;
+
+:getInfo "info" esp32.send ;
+:led_1 "led_1" esp32.send ;
+:led_0 "led_0" esp32.send ;
+:led_flash "led_flash?n=3" esp32.send ;
+
 
 goFunc1:
 "inpFunc1" goFuncX ;
@@ -314,7 +346,7 @@ TFT_VIOLET .. ;
 
 "info" esp32.send ;
 
-"led_on" esp32.send 
+"led_on" esp32.send
 "gpio?pin=2"
   esp32.send ;
 
@@ -328,23 +360,70 @@ TFT_VIOLET .. ;
 "servo?init=10" esp32.send ;
 "servo?deg=90" esp32.send ;
 
+"adc?init=36" esp32.send ;
+:adc36
+1 while "adc?pin=36" esp32.send CR 1 loop ;
 
+
+"adc?pin=36" esp32.send ;
 
 "ajggjsd" panel.getValue . ;
 
 list ;
 
+:.green 0 150 0 .color ;
 
 ( loop tests )
-20 1 while i . " " . dup . " " . 1 - dup loop ; 
+20 1 while i . " " . dup .green " " . 1 - dup loop ;
 20 1 do i . " " . loop ;
 1 20 do i drop " " . loop ;
 
 # test include
   "/home/rommel/Explorer_Comm/Library.for" file.include
-  "Initialized." . CR 
-  TFT_BROWN .
+  "Initialized." . CR
+  TFT_BROWN . " " .
   TFT_PINK dup . " > " . $num .
   ;
 
+"876876" .green ;
 
+".123" $num . ;
+
+"print?clear=1" esp32.send
+"line?x1=0&y1=10&x2=80&y2=10&color=1" esp32.send
+"line?x1=0&y1=12&x2=100&y2=12" esp32.send
+"line?x1=0&y1=15&x2=130&y2=15" esp32.send
+"line?x1=1&y1=20&x2=100&y2=10" esp32.send
+"line?x1=1&y1=22&x2=100&y2=12" esp32.send
+;
+
+
+"rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
+"rect?x=00&y=20&h=10&w=10&color=1&fill=0" esp32.send
+"rect?x=20&y=10&h=10&w=20color=1&fill=1" esp32.send
+"rect?x=60&y=10&h=20&w=10&color=1&fill=0&r=10" esp32.send
+"rect?x=80&y=10&h=20&w=20color=1&fill=1&r=20" esp32.send
+"rect?x=85&y=19&h=10&w=10&color=0&fill=1&r=20" esp32.send
+"rect?x=20&y=25&h=1&w=20color=1&fill=1" esp32.send
+;
+
+:eyes
+"rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
+10 eye
+35 eye
+;
+
+:eye
+  dup
+  to$ "rect?h=20&w=20&color=1&fill=1&r=20&y=10&x=" swap $+ esp32.send
+  5 +
+  to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=19&x=" swap $+ esp32.send
+  #to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=15&x=" swap $+ esp32.send
+;
+
+debug_on
+(debugging)
+"correct" false if 0 123 123 123 "qweqe" aksjhd endif ..
+3 0 do 123 .. loop
+3 true while "www " . 1 - dup loop
+;
