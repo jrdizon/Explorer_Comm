@@ -1,13 +1,35 @@
 /*
- * Webserver 2026
- * By Joseph Dizon
+ * Webserver
+ * by Joseph Dizon rbdizon@yahoo.com
  *
- * For ESP32 and ESP32-C3 Super Mini
  * with Adafruit_SSD1306
+ * with GPIO
  * with servo
  * with ultrasonic
  *
- * Download to ESP32 using Arduino IDE
+ * Commands:
+ *
+ * Get Chip info  http://<ip address>/info
+ * Set LED to 1   http://<ip address>/led_1
+ * Set LED to 0   http://<ip address>/led_0
+ * Flash LED      http://<ip address>/led_flash?n=<count>
+ *
+ * Print text     http://<ip address>/print?text=<text>&color=[0|1]&clear=[0|1]&size=[0|1]&line=<line number>
+ * Set cursor     http://<ip address>/cursor?x=<pixels>&y=<pixels>
+ * Draw Rectangle http://<ip address>/rect?x=<pixels>&y=<pixels>&h=<pixels>&w=<pixels>&color=[0|1]&fill=[0|1]
+ *
+ * Set GPIO mode  http://<ip address>/gpio?init=<pin number>&mode=[in|out]
+ * Set GPIO value http://<ip address>/gpio?pin=<pin number>&val=[0|1]
+ * Get GPIO value http://<ip address>/gpio?pin=<pin number>
+ *
+ * Set ADC pin    http://<ip address>/adc?init=<pin number>
+ * Get ADC value  http://<ip address>/adc?pin=<pin number>
+ *
+ * Set servo pin      http://<ip address>/servo?init=<pin number>
+ * Set servo degrees  http://<ip address>/servo?deg=<degrees>
+ *
+ * Get ultrasonic distance http://<ip address>/ultrasonic
+ *
 */
 
 #include <WiFi.h>
@@ -24,17 +46,18 @@
 #include "freertos/task.h"
 
 #include <ESP32Servo.h>
+#include <secret.h>
 
 //ESP32-C3
-#define ESP32C3_led 2
-#define ESP32C3_ip4 50
+  #define ESP32C3_led 8
+  #define ESP32C3_ip4 50
 
 //ESP32
-#define ESP32_led 13
-#define ESP32_ip4 51
-//Custon pin for display
-#define ESP32_sda 21
-#define ESP32_scl 23
+  #define ESP32_led 2
+  #define ESP32_ip4 51
+  //Custon pin for display
+  #define ESP32_sda 21
+  #define ESP32_scl 23
 
 boolean isESP32C3;
 int led;
@@ -53,10 +76,6 @@ int led;
 #define SCREEN_ADDRESS 0x3C //For I2C
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-
-const char *ssid = "<ssid>";
-const char *password = "<password>";
-
 // Define your static IP settings (replace with your actual network info!)
 IPAddress local_IP(10, 0, 0, 50); // Choose an available IP in your network
 IPAddress gateway(10,0, 0, 1);   // Your router's IP (often 192.168.1.1 or .0.1)
@@ -67,7 +86,7 @@ IPAddress secondaryDNS(8, 8, 4, 4);  // Google DNS (optional)
 WebServer server(80);
 String content_type = "text/plain";
 
-String version = "WebServer 2026.1.1";
+String version = "WebServer 2026.1.2.1";
 
 void setup(void) {
   isESP32C3 = String(ESP.getChipModel()) == "ESP32-C3";
@@ -190,7 +209,9 @@ void setup(void) {
   */
 
   setup_Server();
+  setup_Display();
   setup_GPIO();
+  setup_ADC();
   setup_servo();
   setup_ultrasonic();
 
@@ -209,6 +230,28 @@ void loop(void) {
 
 void setup_Server()
 {
+  //Async
+  /*server.on("/async", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (request->hasArg("x")) { // Check for the "value" argument
+      String x = request->arg("x");
+      String y = request->arg("y");
+      String h = request->arg("h");
+      String w = request->arg("w");
+
+      int c;
+      if (request->hasArg("color") && request->arg("color") == "0")
+        c = SSD1306_BLACK;
+      else
+        c = SSD1306_WHITE;
+
+      display.writeFillRect(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), c);
+      display.display();
+      request->send(200, content_type, "Async Rectangle");
+    } else {
+      request->send(400, content_type, "Invalid async request");
+    }
+  });*/
+
   /* Sample
   server.on("/get", HTTP_GET, [](){
     if (server.hasArg("input1")) { // Check if the "input1" argument exists
@@ -224,10 +267,20 @@ void setup_Server()
   server.on("/", handleRoot);
   server.onNotFound(handleNotFound);
 
+  server.on("/info", HTTP_GET, [](){
+    server.send(200, content_type, version + "\nChip Info: " + String(ESP.getChipModel()) + (isESP32C3 ? " (ESP32-C3)" : ""));
+  });
+
+  server.on("/reset", HTTP_GET, [](){
+    server.send(200, content_type, version + "\nChip Info: " + String(ESP.getChipModel()) + (isESP32C3 ? " (ESP32-C3)" : "") + " -RESET");
+    delay(200);
+    ESP.restart();
+  });
+
   server.on("/wifi-off", HTTP_GET, [](){
     server.send(200, content_type, "WiFi to turn off.");
     delay(1000);
-    //httpd_stop(server); //Stop the httpd server
+    //httpd_stop(server); //Stop 
     WiFi.disconnect(true);
     WiFi.mode(WIFI_OFF);
     // Power down Wi-Fi radio
@@ -235,18 +288,14 @@ void setup_Server()
     printLine(4, "WiFi is off");
   });
 
-  server.on("/info", HTTP_GET, [](){
-    server.send(200, content_type, version + "\nChip Info: " + String(ESP.getChipModel()) + (isESP32C3 ? " (ESP32-C3)" : ""));
-  });
-
-  server.on("/led_on", HTTP_GET, [](){
+  server.on("/led_0", HTTP_GET, [](){
     digitalWrite(led, 0);
-    server.send(200, content_type, "LED:ON");
+    server.send(200, content_type, "LED:0");
   });
 
-  server.on("/led_off", HTTP_GET, [](){
+  server.on("/led_1", HTTP_GET, [](){
     digitalWrite(led, 1);
-    server.send(200, content_type, "LED:OFF");
+    server.send(200, content_type, "LED:1");
   });
 
   server.on("/led_flash", HTTP_GET, [](){
@@ -265,7 +314,10 @@ void setup_Server()
     }
     server.send(200, content_type, "LED:FLASHED:" + sCnt);
   });
+}
 
+void setup_Display()
+{
   server.on("/print", HTTP_GET, [](){
     serve_Print();
   });
@@ -280,10 +332,17 @@ void setup_Server()
 
   //Draw Rectangle
   server.on("/rect", HTTP_GET, [](){
-    String x = server.arg("x");
-    String y = server.arg("y");
-    String h = server.arg("h");
-    String w = server.arg("w");
+    int x = 0;
+    int y = 0;
+    int h = 0;
+    int w = 0;
+    int r = 0;
+
+    if (server.hasArg("x")) x = server.arg("x").toInt();
+    if (server.hasArg("y")) y = server.arg("y").toInt();
+    if (server.hasArg("h")) h = server.arg("h").toInt();
+    if (server.hasArg("w")) w = server.arg("w").toInt();
+    if (server.hasArg("r")) r = server.arg("r").toInt();
 
     int c;
     if (server.hasArg("color") && server.arg("color") == "0")
@@ -291,9 +350,41 @@ void setup_Server()
     else
       c = SSD1306_WHITE;
 
-    display.writeFillRect(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), c);
+    if (server.hasArg("fill") && server.arg("fill") == "1")
+      if (r > 0) display.fillRoundRect(x, y, w, h, r, c);
+      else display.fillRect(x, y, w, h, c);
+    else
+      if (r > 0) display.drawRoundRect(x, y, w, h, r, c);
+      else display.drawRect(x, y, w, h, c);
+
+
     display.display();
     server.send(200, content_type, "Rectangle ");
+  });
+
+
+  //Draw Rectangle
+  server.on("/line", HTTP_GET, [](){
+    int x1 = 0;
+    int y1 = 0;
+    int x2 = 0;
+    int y2 = 0;
+
+    if (server.hasArg("x1")) x1 = server.arg("x1").toInt();
+    if (server.hasArg("y1")) y1 = server.arg("y1").toInt();
+    if (server.hasArg("x2")) x2 = server.arg("x2").toInt();
+    if (server.hasArg("y2")) y2 = server.arg("y2").toInt();
+
+    int c;
+    if (server.hasArg("color") && server.arg("color") == "0")
+      c = SSD1306_BLACK;
+    else
+      c = SSD1306_WHITE;
+
+    display.drawLine(x1, y1, x2, y2, c);
+
+    display.display();
+    server.send(200, content_type, "Line ");
   });
 }
 
@@ -362,41 +453,45 @@ void serve_Print()
 {
   int size;
   String lns;
-  String tx = server.arg("text");
+  String tx = "";
 
-  if (server.hasArg("color") && server.arg("color") != "0")
-    display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-  else
-    display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
-
-  if (server.hasArg("clear") && server.arg("clear") != "0") {
+  if (server.hasArg("clear")) {
     display.clearDisplay();
     display.setCursor(0,0);
   }
 
-  if (server.hasArg("size"))
-    size = server.arg("size").toInt();
-  else
-    size = 1;
+  if (server.hasArg("text")) {
+    tx = server.arg("text");
 
-  if (server.hasArg("line")) { // Check if the "input1" argument exists
-    lns = server.arg("line"); // Get the value of "input1"
-    int ln = lns.toInt();
-    display.setTextSize(1);
-    if (size != 1) {
-      printLine(ln+1, "");
-      display.setTextSize(2);
-    }
-    printLine(ln, tx);
-  } else {
-    lns = "";
-    if (size != 1)
-      display.setTextSize(2);
+    if (server.hasArg("color") && server.arg("color") != "0")
+      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
     else
-      display.setTextSize(1);
+      display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
 
-    display.print(tx);
-    display.display();
+    if (server.hasArg("size"))
+      size = server.arg("size").toInt();
+    else
+      size = 1;
+
+    if (server.hasArg("line")) { // Check if the "input1" argument exists
+      lns = server.arg("line"); // Get the value of "input1"
+      int ln = lns.toInt();
+      display.setTextSize(1);
+      if (size != 1) {
+        printLine(ln+1, "");
+        display.setTextSize(2);
+      }
+      printLine(ln, tx);
+    } else {
+      lns = "";
+      if (size != 1)
+        display.setTextSize(2);
+      else
+        display.setTextSize(1);
+
+      display.print(tx);
+      display.display();
+    }
   }
   server.send(200, content_type, "Print2: " + lns + ": " + tx);
 }
@@ -471,6 +566,26 @@ void setup_GPIO()
   });
 }
 
+
+void setup_ADC()
+{
+  server.on("/adc", HTTP_GET, [](){
+    if (server.hasArg("init")) { //Initialize servo to pin
+      String pin = server.arg("init");
+      pinMode(pin.toInt(), INPUT); // Set as input
+      server.send(200, content_type, "ADC Initialized to pin: " + pin);
+    }
+    else if (server.hasArg("pin")) { // Check if the "input1" argument exists
+      String pin = server.arg("pin");
+      int val = analogRead(pin.toInt());
+      server.send(200, content_type, "ADC(" + pin + "): " + val);
+    } else {
+      server.send(400, content_type, "Invalid adc request");
+    }
+  });
+}
+
+
 Servo myServo;
 int servoPin = 19;
 
@@ -534,7 +649,7 @@ void ultrasonic()
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
+
   // Reads the echoPin, returns the sound wave travel time in microseconds
   duration = pulseIn(echoPin, HIGH);
   // Calculate the distance
