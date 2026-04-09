@@ -77,6 +77,7 @@ panel.clear
 5 panel.addGap
 "Debug ON" "debug1" "btnDebug1" panel.addButton
 "Debug OFF" "debug0" "btnDebug0" panel.addButton
+"Stack" "stack" "btnStack" panel.addButton
 5 panel.addGap
 "HTTP" "showHttp" "btnHttp" panel.addButton
 "SERIAL" "showSerial" "btnSerail" panel.addButton
@@ -86,6 +87,7 @@ list10: list ;
 list20: list2 ;
 debug1: debug_on ;
 debug0: debug_off ;
+stack: .stack ;
 
 :ser_open
   "inpSerNum" panel.getValue dup "Serial#" .. . " open" .
@@ -101,9 +103,9 @@ selectHttp: "selHttp" panel.getValue "inpHttp" panel.setValue ;
 
 //--
 
-.errorColor: dup "Error" $contains dup if dup2 200 0 0 .color endif not if 0 120 0 .color endif ;
+.errorColor: ([string] --) dup "Error" $contains dup if dup2 200 0 0 .color endif not if 0 120 0 .color endif ;
 //--
-esp32.send:
+esp32.send: ([query] --)
 "inpHttp" panel.getValue swap $+ http.get
   .errorColor CR
   "delay" panel.getValue $num 0 > if "delay" panel.getValue $num sleep endif
@@ -148,7 +150,7 @@ sendCharsX:
 sendStopRun:
 "Q" Serial.send "Run stopped." .. stop ;
 
-ssend:
+ssend: (serial send: [string] --)
 Serial.send 5 Serial.getResponse drop
 ;
 
@@ -195,11 +197,6 @@ waitResp:
 0.02 sleep
 # 5 Serial.getResponse drop
  5 Serial.getResponse drop ;
-//--
-
-loop1
-//
-//--
 
 func2:
 1 while
@@ -389,6 +386,11 @@ list ;
 
 ".123" $num . ;
 
+
+
+"reset" esp32.send ;
+
+:TestLine ( Testing Line )
 "print?clear=1" esp32.send
 "line?x1=0&y1=10&x2=80&y2=10&color=1" esp32.send
 "line?x1=0&y1=12&x2=100&y2=12" esp32.send
@@ -397,7 +399,7 @@ list ;
 "line?x1=1&y1=22&x2=100&y2=12" esp32.send
 ;
 
-
+:TestRect ( Testing Rectangle )
 "rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
 "rect?x=00&y=20&h=10&w=10&color=1&fill=0" esp32.send
 "rect?x=20&y=10&h=10&w=20color=1&fill=1" esp32.send
@@ -407,13 +409,13 @@ list ;
 "rect?x=20&y=25&h=1&w=20color=1&fill=1" esp32.send
 ;
 
-:eyes
+:eyes (draw 2 eyes)
 "rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
 10 eye
 35 eye
 ;
 
-:eye
+:eye ([x] --)
   dup
   to$ "rect?h=20&w=20&color=1&fill=1&r=20&y=10&x=" swap $+ esp32.send
   5 +
@@ -424,6 +426,8 @@ list ;
 debug_on
 (debugging)
 "correct" false if 0 123 123 123 "qweqe" aksjhd endif ..
-3 0 do 123 .. loop
+3 1 do "123 " . loop "" ..
 3 true while "www " . 1 - dup loop
 ;
+
+begin "1 " . loop ;
