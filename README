@@ -12,10 +12,10 @@ Download and put (or unzip) all the files in the same folder.
 To start the app in Linux, execute the file "Explorer_Comm.sh".
 In Windows, doubleclick the file "Explorer_Comm.jar" (assuming Java is the default for .jar files).
 
-The script file "ESP32.for" is loaded as specified in the configuration file "explorer.cfg".
-
 The upper text window is the input or script editor contains the script.
 The lower text window is the output contains the result of the script.
+
+Open the Forth file "ESP32.for". The script will appear in the upper window.
 
 To run the "start" function, click the 'Run "start"' button.
 
