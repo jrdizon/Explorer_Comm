@@ -24,3 +24,17 @@ To run the "start" function, click the 'Run "start"' button.
 To run the script starting from a specific line in the script editor, put the cursor anywhere in the line then click the button "Exec Line (F11)" or press F11.
 
 Resources for the Forth language can be found in the internet.
+https://learnxinyminutes.com/forth/
+Although there are some differences in the implementation.
+
+# Ifs & Loops:
+  [true|false] if ... endif
+
+  [true|false] while ... [true|false] loop
+  [true|false] while ... [true|false] [#] loop+
+
+  [end] [start] do ... loop
+  [end] [start] do ... [#] loop+
+
+  begin [true|false] if ... loop
+  begin [true|false] if ... [#] loop+
