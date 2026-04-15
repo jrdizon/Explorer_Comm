@@ -227,6 +227,11 @@ void loop(void) {
   delay(2);  //allow the cpu to switch to other tasks
 }
 
+int serverGetInt(String _Arg)
+{
+  if (server.hasArg(_Arg)) return server.arg(_Arg).toInt();
+  else return 0;
+}
 
 void setup_Server()
 {
@@ -332,17 +337,11 @@ void setup_Display()
 
   //Draw Rectangle
   server.on("/rect", HTTP_GET, [](){
-    int x = 0;
-    int y = 0;
-    int h = 0;
-    int w = 0;
-    int r = 0;
-
-    if (server.hasArg("x")) x = server.arg("x").toInt();
-    if (server.hasArg("y")) y = server.arg("y").toInt();
-    if (server.hasArg("h")) h = server.arg("h").toInt();
-    if (server.hasArg("w")) w = server.arg("w").toInt();
-    if (server.hasArg("r")) r = server.arg("r").toInt();
+    int x = serverGetInt("x");
+    int y = serverGetInt("y");
+    int h = serverGetInt("h");
+    int w = serverGetInt("w");
+    int r = serverGetInt("r");
 
     int c;
     if (server.hasArg("color") && server.arg("color") == "0")
@@ -357,23 +356,19 @@ void setup_Display()
       if (r > 0) display.drawRoundRect(x, y, w, h, r, c);
       else display.drawRect(x, y, w, h, c);
 
-
-    display.display();
+    if (!server.hasArg("wait")) {
+      display.display();
+    }
     server.send(200, content_type, "Rectangle ");
   });
 
 
   //Draw Rectangle
   server.on("/line", HTTP_GET, [](){
-    int x1 = 0;
-    int y1 = 0;
-    int x2 = 0;
-    int y2 = 0;
-
-    if (server.hasArg("x1")) x1 = server.arg("x1").toInt();
-    if (server.hasArg("y1")) y1 = server.arg("y1").toInt();
-    if (server.hasArg("x2")) x2 = server.arg("x2").toInt();
-    if (server.hasArg("y2")) y2 = server.arg("y2").toInt();
+    int x1 = serverGetInt("x1");
+    int y1 = serverGetInt("y1");
+    int x2 = serverGetInt("x2");
+    int y2 = serverGetInt("y2");
 
     int c;
     if (server.hasArg("color") && server.arg("color") == "0")
@@ -383,7 +378,9 @@ void setup_Display()
 
     display.drawLine(x1, y1, x2, y2, c);
 
-    display.display();
+    if (!server.hasArg("wait")) {
+        display.display();
+    }
     server.send(200, content_type, "Line ");
   });
 }
@@ -490,8 +487,13 @@ void serve_Print()
         display.setTextSize(1);
 
       display.print(tx);
-      display.display();
+
+      //display.display();
     }
+  }
+
+  if (!server.hasArg("wait")) {
+    display.display();
   }
   server.send(200, content_type, "Print2: " + lns + ": " + tx);
 }
