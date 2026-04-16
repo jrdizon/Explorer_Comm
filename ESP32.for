@@ -1,5 +1,10 @@
 # ESP32.for
 #
+# Ifs & Loops:
+#  [boolean] if ... endif
+#  [boolean] while ... [boolean] loop
+#  [end] [start] do ... loop
+#  begin [boolean] if ... loop
 #
 :start showHttp ;
 
@@ -101,10 +106,9 @@ stack: .stack ;
 
 selectHttp: "selHttp" panel.getValue "inpHttp" panel.setValue ;
 
-//--
 
 .errorColor: ([string] --) dup "Error" $contains dup if dup2 200 0 0 .color endif not if 0 120 0 .color endif ;
-//--
+
 esp32.send: ([query] --)
 "inpHttp" panel.getValue swap $+ http.get
   .errorColor CR
@@ -154,19 +158,12 @@ ssend: (serial send: [string] --)
 Serial.send 5 Serial.getResponse drop
 ;
 
-//--
 
-Serial.close
-//--
-
-//--
  "G100" Serial.send
  0.8 sleep
  getStat
+;
 
-//--
-getStat
-//--
 getStat:
  "S" Serial.send 0.3 sleep
  1 Serial.getResponse dup .. "[|]" $split " size=" . dup $array.size .
@@ -176,11 +173,9 @@ getStat:
  dup 3 $array.get " 3=[" . . "]" .
  dup 4 $array.get " 4=[" . . "]" .
  drop CR ;
-//--
+
 
  1 Serial.getResponse dup .. "[|]" $split $array.size ..
-
-//--
 
 sleep1: 0.5 sleep ;
 
@@ -210,7 +205,6 @@ func2:
  1 sleep
  1 loop ;
 
-//--
 
 func3:
 1 while
@@ -238,24 +232,22 @@ func1:
 "servo?deg=90" esp32.send
 0.6 sleep
 true
-loop
+loop ;
 
-//--
 
 "servo?deg=0" esp32.send ;
 "servo?deg=180" esp32.send ;
-//--
 
 
-"servo?deg=180" esp32.send
 
-//--
+"servo?deg=180" esp32.send ;
 
-"print?line=4&text=qwerty" esp32.send
-//--
 
-"ultrasonic" esp32.send
-//--
+"print?line=4&text=qwerty" esp32.send ;
+
+
+"ultrasonic" esp32.send ;
+
 
 servo30:
   dup $num 20 < if
@@ -265,18 +257,11 @@ servo30:
     "http://10.0.0.50/" swap $+ http.get drop
   } drop ;
 
-//--
 
 1 while
 "ultrasonic" "http://10.0.0.50/" swap $+ http.get
 dup
 ..
-
-dup
-"print?line=3&size=2&text=" swap $+ "http://10.0.0.50/" swap $+ http.get drop
-#"print?size=1&text=+cm" "http://10.0.0.50/" swap $+ http.get drop
-
-dup servo30
 
 dup
 $num 2 / to$
@@ -285,32 +270,18 @@ $num 2 / to$
 dup
 "rect?y=0&h=8&color=0&w=128&x=" swap $+ "http://10.0.0.50/" swap $+ http.get drop
 
-drop
-0.02 sleep
- 1
- loop
-
-//--
 
 "print?line=2&text=Hello+&white=5&clear=1&size=2" "http://10.0.0.50/" swap $+ http.get ..
-
-//--
 
 #"rect?x=10&y=1&h=32&w=20&color=10" "http://10.0.0.50/" swap $+ http.get ..
 "print?text=Hello+&white=0&clear=1&size=1" "http://10.0.0.50/" swap $+ http.get ..
 "print?line=3&text=Hello+&white=0&clear=0&size=2" "http://10.0.0.50/" swap $+ http.get ..
 
-//--
-
 "cursor?x=10&y=4" esp32.send
 "print?text=Hello" esp32.send
 
-
-
 "servo?init=10" esp32.send ;
 "servo?deg=120" esp32.send ;
-
-"ssswifi-off" esp32.send ;
 
 "inline" esp32.send ;
 
@@ -326,18 +297,9 @@ drop
 
 "gpio?pin=10"
   esp32.send ;
-//--
-
-"10" $num 5 / .. ;
-
-list ;
-list2 ;
-
 
 "Library.for" file.include
 TFT_VIOLET .. ;
-
-//--
 
 "inpHttp" panel.getValue .
 
@@ -353,59 +315,35 @@ TFT_VIOLET .. ;
 "led_flash?n=10" esp32.send
 "gpio?pin=2" esp32.send ;
 
-
 "servo?init=10" esp32.send ;
+
 "servo?deg=90" esp32.send ;
 
-"adc?init=36" esp32.send ;
-:adc36
-1 while "adc?pin=36" esp32.send CR 1 loop ;
-
-
-"adc?pin=36" esp32.send ;
-
-"ajggjsd" panel.getValue . ;
-
-list ;
-
-:.green 0 150 0 .color ;
-
-( loop tests )
-20 1 while i . " " . dup .green " " . 1 - dup loop ;
-20 1 do i . " " . loop ;
-1 20 do i drop " " . loop ;
-
 # test include
-  "/home/rommel/Explorer_Comm/Library.for" file.include
+  "Library.for" file.include
   "Initialized." . CR
   TFT_BROWN . " " .
   TFT_PINK dup . " > " . $num .
   ;
-
-"876876" .green ;
-
-".123" $num . ;
-
-
 
 "reset" esp32.send ;
 
 :TestLine ( Testing Line )
 "print?clear=1" esp32.send
 "line?x1=0&y1=10&x2=80&y2=10&color=1" esp32.send
-"line?x1=0&y1=12&x2=100&y2=12" esp32.send
-"line?x1=0&y1=15&x2=130&y2=15" esp32.send
-"line?x1=1&y1=20&x2=100&y2=10" esp32.send
+"line?x1=0&y1=12&x2=100&y2=12&wait=1" esp32.send
+"line?x1=0&y1=15&x2=130&y2=15&wait=1" esp32.send
+"line?x1=1&y1=20&x2=100&y2=10&wait=1" esp32.send
 "line?x1=1&y1=22&x2=100&y2=12" esp32.send
 ;
 
 :TestRect ( Testing Rectangle )
 "rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
-"rect?x=00&y=20&h=10&w=10&color=1&fill=0" esp32.send
-"rect?x=20&y=10&h=10&w=20color=1&fill=1" esp32.send
-"rect?x=60&y=10&h=20&w=10&color=1&fill=0&r=10" esp32.send
-"rect?x=80&y=10&h=20&w=20color=1&fill=1&r=20" esp32.send
-"rect?x=85&y=19&h=10&w=10&color=0&fill=1&r=20" esp32.send
+"rect?x=00&y=20&h=10&w=10&color=1&fill=0&wait=1" esp32.send
+"rect?x=20&y=10&h=10&w=20color=1&fill=1&wait=1" esp32.send
+"rect?x=60&y=10&h=20&w=10&color=1&fill=0&r=10&wait=1" esp32.send
+"rect?x=80&y=10&h=20&w=20color=1&fill=1&r=20&wait=1" esp32.send
+"rect?x=85&y=19&h=10&w=10&color=0&fill=1&r=20&wait=1" esp32.send
 "rect?x=20&y=25&h=1&w=20color=1&fill=1" esp32.send
 ;
 
@@ -413,21 +351,14 @@ list ;
 "rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
 10 eye
 35 eye
+"print" esp32.send
 ;
 
 :eye ([x] --)
   dup
-  to$ "rect?h=20&w=20&color=1&fill=1&r=20&y=10&x=" swap $+ esp32.send
+  to$ "rect?h=20&w=20&color=1&fill=1&r=20&y=10&wait=1&x=" swap $+ esp32.send
   5 +
-  to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=19&x=" swap $+ esp32.send
-  #to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=15&x=" swap $+ esp32.send
+  to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=19&wait=1&x=" swap $+ esp32.send
+  #to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=15&wait=1&x=" swap $+ esp32.send
 ;
 
-debug_on
-(debugging)
-"correct" false if 0 123 123 123 "qweqe" aksjhd endif ..
-3 1 do "123 " . loop "" ..
-3 true while "www " . 1 - dup loop
-;
-
-begin "1 " . loop ;
