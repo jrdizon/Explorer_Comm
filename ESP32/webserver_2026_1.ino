@@ -25,8 +25,8 @@
  * Set ADC pin    http://<ip address>/adc?init=<pin number>
  * Get ADC value  http://<ip address>/adc?pin=<pin number>
  *
- * Set servo pin      http://<ip address>/servo?init=<pin number>
- * Set servo degrees  http://<ip address>/servo?deg=<degrees>
+ * Set servo pin      http://<ip address>/servo?init=<pin number>&init1=<pin>&...
+ * Set servo degrees  http://<ip address>/servo?deg=<degrees>&deg1=<degress>&...
  *
  * Get ultrasonic distance http://<ip address>/ultrasonic
  *
@@ -51,6 +51,8 @@
 //ESP32-C3
   #define ESP32C3_led 8
   #define ESP32C3_ip4 50
+  #define ESP32C3_sda 7
+  #define ESP32C3_scl 9
 
 //ESP32
   #define ESP32_led 2
@@ -86,13 +88,14 @@ IPAddress secondaryDNS(8, 8, 4, 4);  // Google DNS (optional)
 WebServer server(80);
 String content_type = "text/plain";
 
-String version = "WebServer 2026.1.2.1";
+String version = "WebServer 2026.1.3.0";
 
 void setup(void) {
   isESP32C3 = String(ESP.getChipModel()) == "ESP32-C3";
   if (isESP32C3) {
     led = ESP32C3_led;
     IPAddress local_IP(10, 0, 0, ESP32C3_ip4); //Set statis IP address
+    Wire.setPins(ESP32C3_sda, ESP32C3_scl); //Custon pin for display
   }
   else {
     led = ESP32_led;
@@ -230,7 +233,7 @@ void loop(void) {
 int serverGetInt(String _Arg)
 {
   if (server.hasArg(_Arg)) return server.arg(_Arg).toInt();
-  else return 0;
+  else return -1;
 }
 
 void setup_Server()
@@ -321,67 +324,143 @@ void setup_Server()
   });
 }
 
+//Shape Parameters
+int xS = 0;
+int yS = 0;
+int x2S = 0;
+int y2S = 0;
+int hS = 0;
+int wS = 0;
+int roundS = 0;
+int colorS;
+int fillS;
 void setup_Display()
 {
   server.on("/print", HTTP_GET, [](){
-    serve_Print();
+    String resp = serve_Print();
+    server.send(200, content_type, resp);
   });
 
-  //Set Cursor
-  server.on("/cursor", HTTP_GET, [](){
-    String x = server.arg("x");
-    String y = server.arg("y");
-    display.setCursor(x.toInt(), y.toInt());
-    server.send(200, content_type, "Cursor: " + x + ":" + y);
-  });
+//Draw shape
+  server.on("/draw", HTTP_GET, [](){
 
-  //Draw Rectangle
-  server.on("/rect", HTTP_GET, [](){
-    int x = serverGetInt("x");
-    int y = serverGetInt("y");
-    int h = serverGetInt("h");
-    int w = serverGetInt("w");
-    int r = serverGetInt("r");
+    String resp = "Shape:";
 
-    int c;
-    if (server.hasArg("color") && server.arg("color") == "0")
-      c = SSD1306_BLACK;
-    else
-      c = SSD1306_WHITE;
+    for (uint8_t i = 0; i < server.args(); i++) {
+      String argName = server.argName(i);
+      String argVal = server.arg(i);
+      int intVal = argVal.toInt();
 
-    if (server.hasArg("fill") && server.arg("fill") == "1")
-      if (r > 0) display.fillRoundRect(x, y, w, h, r, c);
-      else display.fillRect(x, y, w, h, c);
-    else
-      if (r > 0) display.drawRoundRect(x, y, w, h, r, c);
-      else display.drawRect(x, y, w, h, c);
+      if (argName == "wait") {
+        int millisWait = argVal.toInt();
+        if (millisWait > 0) {
+          delay(millisWait);
+        }
+      }
 
-    if (!server.hasArg("wait")) {
-      display.display();
-    }
-    server.send(200, content_type, "Rectangle ");
-  });
+      else if (argName == "color") {
+        if (argVal == "0")
+          colorS = SSD1306_BLACK;
+        else
+          colorS = SSD1306_WHITE;
+      }
 
+      else if (argName == "fill") {
+        fillS = intVal;
+      }
 
-  //Draw Rectangle
-  server.on("/line", HTTP_GET, [](){
-    int x1 = serverGetInt("x1");
-    int y1 = serverGetInt("y1");
-    int x2 = serverGetInt("x2");
-    int y2 = serverGetInt("y2");
+      else if (argName == "r") {
+        roundS = intVal;
+      }
 
-    int c;
-    if (server.hasArg("color") && server.arg("color") == "0")
-      c = SSD1306_BLACK;
-    else
-      c = SSD1306_WHITE;
+      else if (argName == "h") {
+        hS = intVal;
+      }
 
-    display.drawLine(x1, y1, x2, y2, c);
+      else if (argName == "w") {
+        wS = intVal;
+      }
 
-    if (!server.hasArg("wait")) {
+      else if (argName == "x") {
+        xS = intVal;
+      }
+
+      else if (argName == "y") {
+        yS = intVal;
+      }
+
+      else if (argName == "x2") {
+        x2S = intVal;
+      }
+
+      else if (argName == "y2") {
+        y2S = intVal;
+      }
+
+      else if (argName == "rect") {
+          if (fillS > 0) {
+            if (roundS > 0) display.fillRoundRect(xS, yS, wS, hS, roundS, colorS);
+            else display.fillRect(xS, yS, wS, hS, colorS);
+          }
+          else {
+            if (roundS > 0) display.drawRoundRect(xS, yS, wS, hS, roundS, colorS);
+            else display.drawRect(xS, yS, wS, hS, colorS);
+          }
+          if (intVal > 0)
+            display.display();
+        }
+
+      else if (argName == "line") {
+        display.drawLine(xS, yS, x2S, y2S, colorS);
+        if (intVal > 0)
+          display.display();
+      }
+      
+      else if (argName == "circle") {
+        if (fillS > 0) display.fillCircle(xS, yS, wS, colorS);
+        else display.drawCircle(xS, yS, wS, colorS);
+        if (intVal > 0)
+          display.display();
+      }
+
+      //else if (argName == "ellipse") {
+      //  if (fillS > 0) display.fillEllipse(xS, yS, wS, hS, colorS);
+      //  else display.drawEllipse(xS, yS, wS, hS, colorS);
+      //  if (intVal > 0)
+      //    display.display();
+      //}
+
+      else if (argName == "triangle") {
+        if (fillS > 0) display.fillTriangle(xS, yS, x2S, y2S, x2S+wS, y2S, colorS);
+        else display.drawTriangle(xS, yS, x2S, y2S, x2S+wS, y2S, colorS);
+        if (intVal > 0)
+          display.display();
+      }
+
+      else if (argName == "clear") {
+        display.clearDisplay();
+        if (intVal > 0)
+          display.display();
+      }
+
+      else if (argName == "cursor") {
+        display.setCursor(xS, yS);
+        if (intVal > 0)
+          display.display();
+      }
+
+      else if (argName == "text") {
+        display.print(argVal);
+      }
+
+      else if (argName == "print") {
         display.display();
-    }
-    server.send(200, content_type, "Line ");
+      }
+
+      else
+        resp += " ?:" + argName + ":" + argVal;
+    } 
+    server.send(200, content_type, resp);
   });
 }
 
@@ -446,56 +525,79 @@ void handleNotFound() {
 /*
 /print?color=[0|1]&clear=[1]&size=[1|2]&line=[1|..|4]&text=<text>
 */
-void serve_Print()
+int x = 0;
+int y = 0;
+int size = 1;
+int line = 1;
+String serve_Print()
 {
-  int size;
-  String lns;
-  String tx = "";
+  String resp = "Print:";
 
-  if (server.hasArg("clear")) {
-    display.clearDisplay();
-    display.setCursor(0,0);
-  }
+  for (uint8_t i = 0; i < server.args(); i++) {
+    String argName = server.argName(i);
+    String argVal = server.arg(i);
 
-  if (server.hasArg("text")) {
-    tx = server.arg("text");
-
-    if (server.hasArg("color") && server.arg("color") != "0")
-      display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-    else
-      display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
-
-    if (server.hasArg("size"))
-      size = server.arg("size").toInt();
-    else
-      size = 1;
-
-    if (server.hasArg("line")) { // Check if the "input1" argument exists
-      lns = server.arg("line"); // Get the value of "input1"
-      int ln = lns.toInt();
-      display.setTextSize(1);
-      if (size != 1) {
-        printLine(ln+1, "");
-        display.setTextSize(2);
+    if (argName == "wait") {
+      int millisWait = argVal.toInt();
+      if (millisWait > 0) {
+        delay(millisWait);
       }
-      printLine(ln, tx);
-    } else {
-      lns = "";
+    }
+
+    else if (argName == "clear") {
+      display.clearDisplay();
+      display.setCursor(0,0);
+      display.display();
+      }
+
+    else if (argName == "color") {
+      if (argVal == "0")
+        display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+      else
+        display.setTextColor(SSD1306_WHITE, SSD1306_BLACK);
+    }
+
+    else if (argName == "size") {
+      size = argVal.toInt();
       if (size != 1)
         display.setTextSize(2);
       else
         display.setTextSize(1);
-
-      display.print(tx);
-
-      //display.display();
     }
+
+    else if (argName == "line") {
+      line = argVal.toInt();
+      if (size != 1) {
+        printLine(line+1, "");
+      }
+      else {
+        printLine(line, "");
+      }
+    }
+
+    else if (argName == "x") {
+      x = argVal.toInt();
+      display.setCursor(x, y);
+    }
+
+    else if (argName == "y") {
+      y = argVal.toInt();
+      display.setCursor(x, y);
+    }
+
+    else if (argName == "text") {
+      display.print(argVal);
+    }
+
+    else if (argName == "print") {
+      display.display();
+    }
+
+    else
+        resp += " ?:" + argName + ":" + argVal;
   }
 
-  if (!server.hasArg("wait")) {
-    display.display();
-  }
-  server.send(200, content_type, "Print2: " + lns + ": " + tx);
+  return resp;
 }
 
 void printLine(int line, String str)
@@ -587,36 +689,251 @@ void setup_ADC()
   });
 }
 
+//#define servoCount 8
+/*struct sServo { 
+  Servo myServo;
+  int deg;
+};
+struct sServo myServos[servoCount];*/
 
-Servo myServo;
-int servoPin = 19;
+#define numServos 9
+Servo servos[numServos];
+//int servoPins[numServos] = {2, 4, 5, 12, 13, 14, 15, 16, 17}; //Available pins for ESP32
+int servoDegs[numServos] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //Current degrees for each servo
+//int servoTimers[numServos] = {-1, -1, -1, -1, -1, -1, -1, -1, -1}; //Timer allocated for each servo
+int servoDests[numServos] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //Destination degrees for each servo
+int servoMax[numServos] = {180, 180, 180, 180, 180, 180, 180, 180, 180}; //Max degrees for each servo
+int servoMin[numServos] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //Min degrees for each servo
+
+boolean servoIsTimed = true;
+int servoSteps[numServos] = {1, 1, 1, 1, 1, 1, 1, 1, 1}; //Degrees to move per step when timed
+int servoTemp[numServos] = {0, 0, 0, 0, 0, 0, 0, 0, 0}; //Degrees to move per step when timed
+int servoDelay = 20; //Delay in ms between steps when timed
+String respServo;
+//Note: Servo available pins: 2, 4, 5, 12-19, 21-23, 25-27, 32-33 (ESP32) and 0-9 (ESP32-C3)
 
 void setup_servo()
 {
-  server.on("/servo", HTTP_GET, [](){
-    if (server.hasArg("init")) { //Initialize servo to pin
-      String pin = server.arg("init");
-      init_servo(pin.toInt());
-      server.send(200, content_type, "Servo Initialized to pin: " + pin);
-    }
-    else if (server.hasArg("deg")) { // Check if the "input1" argument exists
-      String deg = server.arg("deg");
-      //printLine(3, "");
-      //printLine(4, "Servo (deg): " + deg);
+  // Allow allocation of all timers
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
 
-      myServo.write(deg.toInt());
-      server.send(200, content_type, "Servo (deg): " + deg);
-    } else {
-      server.send(400, content_type, "Invalid servo request");
+  server.on("/servo", HTTP_GET, [](){
+
+    respServo = "";
+    String argName;
+    String argVal;
+
+    try {
+    for (uint8_t i = 0; i < server.args(); i++) {
+      argName = server.argName(i);
+      argVal = server.arg(i);
+
+      char idxStr = argName[argName.length() - 1]; // Get the last character for index
+      int idx = 0;
+      if (idxStr >= '0' && idxStr <= '9') {
+        idx = idxStr - '0'; // Convert char to int (assuming single digit index)
+        if (idx >= numServos) {
+          respServo += " ?" + argName;
+          continue; // Skip invalid index
+        }
+      }
+
+      //Set destination degrees for servo (0-180)
+      if (argName.startsWith("deg")) {
+          int deg = argVal.toInt();
+          if (deg < servoMin[idx]) deg = servoMin[idx];
+          if (deg > servoMax[idx]) deg = servoMax[idx];
+          servoDests[idx] = deg; //Set destination for this servo
+          servoTemp[i] = 0; //Reset timer for this servo to move immediately to new destination
+
+          /*if (servoIsTimed) {
+            //servoTimers[idx] = millis(); //Start timer for this servo
+            servoDests[idx] = deg; //Set destination for this servo
+          }
+          else {
+            servos[idx].write(deg); //Move immediately to position
+            servoDegs[idx] = deg; //Update current position
+          }*/
+        respServo += " D"+String(idx);
+      }
+
+      //Add degrees to current destination for servo
+      else if (argName.startsWith("add")) {
+        int degAdd = argVal.toInt();
+        servoDests[idx] += degAdd; //Add to destination for this servo
+        if (servoDests[idx] < servoMin[idx]) servoDests[idx] = servoMin[idx];
+        if (servoDests[idx] > servoMax[idx]) servoDests[idx] = servoMax[idx];
+        servoTemp[i] = 0; //Reset timer for this servo to move immediately to new destination
+        respServo += " A"+String(idx);
+      }
+
+      else if (argName.startsWith("min")) {
+        int degMin = argVal.toInt();
+        servoMin[idx] = degMin; //Set minimum for this servo
+        if (servoDests[idx] < servoMin[idx]) servoDests[idx] = servoMin[idx];
+        respServo += " Min"+String(idx)+":"+String(degMin);
+      }
+
+      else if (argName.startsWith("max")) {
+        int degMax = argVal.toInt();
+        servoMax[idx] = degMax; //Set maximum for this servo
+        if (servoDests[idx] > servoMax[idx]) servoDests[idx] = servoMax[idx];
+        respServo += " Max"+String(idx)+":"+String(degMax);
+      }
+
+      //Set step size for timed movement
+      else if (argName.startsWith("steps")) {
+        int steps = argVal.toInt();
+          servoSteps[idx] = steps;
+          respServo += " Steps:" + String(idxStr) + ":" + String(steps);
+      }
+
+      //Set delay between steps for timed movement
+      else if (argName == "delay") {
+        servoDelay = argVal.toInt();
+        //if (servoDelay < 10) servoDelay = 10;
+        respServo += " Delay:" + String(servoDelay) + "ms";
+      }
+
+      //Set whether to move servos in timed steps or immediately
+      else if (argName == "timed") {
+        servoIsTimed = argVal.toInt() > 0;
+        respServo += " Timed:" + String(servoIsTimed);
+      }
+
+      //Move servos to their destinations
+      else if (argName == "go") {
+        loop_servo(argVal.toInt() > 0); //Move servos to their destinations
+        respServo += " Go";
+      }
+
+      //Wait for a specified time before next arg (allows time for servos to move if in timed mode)
+      else if (argName == "wait") {
+        int millisWait = argVal.toInt();
+        if (millisWait > 0) {
+          delay(millisWait);
+          respServo += " Wait:" + String(millisWait) + "ms";
+        }
+      }
+
+      //Initialize servo to pin
+      else if (argName.startsWith("pin")) {
+          if (argVal.equals("x")) {
+            servos[idx].detach();
+            respServo += " S"+String(idx)+":x";
+          }
+          else {
+            respServo += " I"+String(idx);
+            servos[idx].setPeriodHertz(50); // Standard 50hz servo
+            int reserved = servos[idx].attach(argVal.toInt(), 500, 2400); // Attach with min/max pulse widths
+            if (reserved == 0) {
+              respServo += ": Failed to attach servo" + String(idx) + " to pin " + argVal + "\n";
+            }
+            else {
+              respServo += ":" + String(reserved); // Reserved timer number
+            }
+            servoDegs[idx] = 90; // Initialize current degree
+            servoDests[idx] = 90; // Initialize destination degree
+          }
+      }
+
+      else {
+        respServo += " ?:" + argName;
+      }
     }
+
+    loop_servo(servoIsTimed); //Update servo positions if in timed mode
+
+    server.send(200, content_type, "Servo:"+respServo);
+  }
+  catch (const std::exception& e) {
+    Serial.println("Error initializing servo: " + String(e.what()));
+    //server.send(400, content_type, "Invalid servo initialization: " + String(e.what()));
+    respServo += "\nError: " + String(e.what());
+    respServo += "\n";
+    server.send(200, content_type, "Error: "+argName+":"+argVal+":"+respServo);
+  }
   });
 }
 
-void init_servo(int _Pin)
-{
-  myServo.attach(_Pin);
-  myServo.write(0); //0-170 degrees
+void loop_servo(boolean _IsTimed) {
+  boolean anyMoving = true;
+  while (anyMoving)
+  {
+    anyMoving = false;
+    for (int i = 0; i < numServos; i++) {
+      if (servos[i].attached()) {
+        int currentDeg = servoDegs[i];
+        int destDeg = servoDests[i];
+        if (!_IsTimed) {
+          currentDeg = destDeg;
+          servos[i].write(currentDeg);
+          servoDegs[i] = currentDeg;
+        }
+        else if (currentDeg != destDeg) {
+          if (servoTemp[i] > 0) {
+            servoTemp[i]--;
+          }
+          else {
+            int step = 1;
+            if (currentDeg < destDeg) {
+              currentDeg += step;
+              if (currentDeg > destDeg) currentDeg = destDeg;
+            }
+            else {
+              currentDeg -= step;
+              if (currentDeg < destDeg) currentDeg = destDeg;
+            }
+            servos[i].write(currentDeg);
+            servoDegs[i] = currentDeg;
+            servoTemp[i] = servoSteps[i]; //Reset timer for this servo
+          }
+          anyMoving = true;
+        }
+      }
+    }
+    if(anyMoving)
+      delay(servoDelay); // Small delay to allow servo movement and reduce CPU usage
+  }
 }
+
+/*void loop_servo(boolean _IsTimed) {
+  boolean anyMoving = true;
+  while (anyMoving)
+  {
+    anyMoving = false;
+    for (int i = 0; i < numServos; i++) {
+      if (servos[i].attached()) {
+        int currentDeg = servoDegs[i];
+        int destDeg = servoDests[i];
+        if (!_IsTimed) {
+          currentDeg = destDeg;
+          servos[i].write(currentDeg);
+          servoDegs[i] = currentDeg;
+        }
+        else if (currentDeg != destDeg) {
+          int step = servoSteps[i];
+          if (currentDeg < destDeg) {
+            currentDeg += step;
+            if (currentDeg > destDeg) currentDeg = destDeg;
+          }
+          else {
+            currentDeg -= step;
+            if (currentDeg < destDeg) currentDeg = destDeg;
+          }
+          servos[i].write(currentDeg);
+          servoDegs[i] = currentDeg;
+          anyMoving = true;
+        }
+      }
+    }
+    if(anyMoving)
+      delay(servoDelay); // Small delay to allow servo movement and reduce CPU usage
+  }
+}*/
 
 
 //Ultrasonic Sensor
