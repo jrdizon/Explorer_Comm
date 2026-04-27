@@ -1,20 +1,16 @@
 # ESP32.for
 #
-# Ifs & Loops:
-#  [boolean] if ... endif
-#  [boolean] while ... [boolean] loop
-#  [end] [start] do ... loop
-#  begin [boolean] if ... loop
-#
+\ Ifs & Loops:
+\  [boolean] if ... endif
+\  [boolean] while ... [boolean] loop
+\  [end] [start] do ... loop
+\  begin [boolean] if ... loop
+\
 :start showHttp ;
 
 :showHttp
 
-panel.start
-
-10 panel.addGap
-"eyes" "inpFunc3" panel.addInput
-"Go" "goFunc3" "btnGF3" panel.addButton
+panel_start
 
 20 panel.addGap
 "ESP32 URL" panel.addLabel
@@ -25,33 +21,48 @@ panel.start
 "http://10.0.0.51/" "selHttp" panel.addOption
 
 10 panel.addGap
-"Delay After Send" panel.addLabel
+"Servo Delay (Sec)" panel.addLabel
 "0.0" "delay" panel.addInput
 
 10 panel.addGap
 "Get Info" "getInfo" "btnInfo" panel.addButton
 "LED 1" "led_1" "btnLED1" panel.addButton
 "LED 0" "led_0" "btnLED0" panel.addButton
+"Reset" "reset" "btnReset" panel.addButton
 
 10 panel.addGap
-"gpio?pin=10&mode=out" "chars2" panel.addInput
-"Send" "sendChars2" "btnSC2" panel.addButton
+"selectRun" "selRun" panel.addSelector
+"eyes" "selRun" panel.addOption
 
 10 panel.addGap
-"gpio?pin=10&val=0" "chars3" panel.addInput
-"Send" "sendChars3" "btnSC3" panel.addButton
+"eyes" "inpFunc3" panel.addInput
+"Go" "goFunc3" "btnGF3" panel.addButton
 
+5 panel.addGap
+"servo_initialize" "chars2" panel.addInput
+"Go" "sendChars2" "btnSC2" panel.addButton
+
+5 panel.addGap
+"servo_reset" "chars3" panel.addInput
+"Go" "sendChars3" "btnSC3" panel.addButton
+
+5 panel.addGap
+"servo_mid" "chars4" panel.addInput
+"Go" "sendChars4" "btnSC4" panel.addButton
+(
 10 panel.addGap
-"gpio?pin=10&val=1" "chars4" panel.addInput
-"Send" "sendChars4" "btnSC4" panel.addButton
-
+"gpio?pin=10&val=1" "chars5" panel.addInput
+"Send" "sendChars5" "btnSC5" panel.addButton
+)
+panel_end
+panel_start2
 ;
 
-######################################## end of start
+########################################
 
 :showSerial
 
-panel.start
+panel_start
 
 10 panel.addGap
 "Serial Port Number" panel.addLabel
@@ -71,21 +82,26 @@ panel.start
 "func2" "inpFunc3" panel.addInput
 "Go" "goFunc3" "btnGF3" panel.addButton
 
+panel_end
 ;
-######################################## end of start
+########################################
 
-:panel.start
+:panel_start (==== Start panel ================)
 panel.clear
-0.1 sleep
-"List" "list10" "btnList1" panel.addButton
+0.3 sleep
+"HTTP" "showHttp" "btnHttp" panel.addButton
+"SERIAL" "showSerial" "btnSerail" panel.addButton
+;
+
+:panel_end
+20 panel.addGap
+"List Words" "list10" "btnList1" panel.addButton
 "List Functions" "list20" "btnList2" panel.addButton
 5 panel.addGap
 "Debug ON" "debug1" "btnDebug1" panel.addButton
 "Debug OFF" "debug0" "btnDebug0" panel.addButton
 "Stack" "stack" "btnStack" panel.addButton
 5 panel.addGap
-"HTTP" "showHttp" "btnHttp" panel.addButton
-"SERIAL" "showSerial" "btnSerail" panel.addButton
 ;
 
 list10: list ;
@@ -93,6 +109,12 @@ list20: list2 ;
 debug1: debug_on ;
 debug0: debug_off ;
 stack: .stack ;
+
+selectRun:
+  "chars3" panel.getValue "chars4" panel.setValue
+  "chars2" panel.getValue "chars3" panel.setValue
+  "inpFunc3" panel.getValue "chars2" panel.setValue
+  "selRun" panel.getValue dup "inpFunc3" panel.setValue execWord ;
 
 :ser_open
   "inpSerNum" panel.getValue dup "Serial#" .. . " open" .
@@ -112,14 +134,13 @@ selectHttp: "selHttp" panel.getValue "inpHttp" panel.setValue ;
 esp32.send: ([query] --)
 "inpHttp" panel.getValue swap $+ http.get
   .errorColor CR
-  "delay" panel.getValue $num 0 > if "delay" panel.getValue $num sleep endif
 ;
 
 :getInfo "info" esp32.send ;
 :led_1 "led_1" esp32.send ;
 :led_0 "led_0" esp32.send ;
 :led_flash "led_flash?n=3" esp32.send ;
-
+:reset "reset" esp32.send ;
 
 goFunc1:
 "inpFunc1" goFuncX ;
@@ -137,13 +158,16 @@ sendChars:
 "chars" sendCharsX ;
 
 sendChars2:
-"chars2" sendCharsX ;
+"chars2" panel.getValue execWord ;
 
 sendChars3:
-"chars3" sendCharsX ;
+"chars3" panel.getValue execWord ;
 
 sendChars4:
-"chars4"  sendCharsX ;
+"chars4" panel.getValue execWord ;
+
+sendChars5:
+"chars5"  sendCharsX ;
 
 sendCharsX:
   panel.getValue
@@ -207,83 +231,10 @@ func2:
 
 
 func3:
-1 while
- "G400" Serial.send waitResp
- "G-500" Serial.send waitResp
- "G300" Serial.send waitResp
- "G-20" Serial.send waitResp
-"VA0" Serial.send waitResp
- "G20" Serial.send waitResp
- "G20" Serial.send waitResp
- "G-20" Serial.send waitResp
- "VA90" Serial.send waitResp
- 1 sleep
- 1 loop ;
-
 func1:
-"servo?init=10" esp32.send
-1 while
-"" ..
-"servo?deg=0" esp32.send
-0.6 sleep
-"servo?deg=45" esp32.send
-"servo?deg=125" esp32.send
-"servo?deg=180" esp32.send
-"servo?deg=90" esp32.send
-0.6 sleep
-true
-loop ;
-
-
-"servo?deg=0" esp32.send ;
-"servo?deg=180" esp32.send ;
-
-
-
-"servo?deg=180" esp32.send ;
-
-
 "print?line=4&text=qwerty" esp32.send ;
 
-
 "ultrasonic" esp32.send ;
-
-
-servo30:
-  dup $num 20 < if
-    dup $num 10 * to$
-    "servo?deg=" swap $+
-    dup ..
-    "http://10.0.0.50/" swap $+ http.get drop
-  } drop ;
-
-
-1 while
-"ultrasonic" "http://10.0.0.50/" swap $+ http.get
-dup
-..
-
-dup
-$num 2 / to$
-#"rect?x=0&y=0&h=8&color=0&w=128" "http://10.0.0.50/" swap $+ http.get ..
-"rect?x=0&y=0&h=8&color=1&w=" swap $+ "http://10.0.0.50/" swap $+ http.get drop
-dup
-"rect?y=0&h=8&color=0&w=128&x=" swap $+ "http://10.0.0.50/" swap $+ http.get drop
-
-
-"print?line=2&text=Hello+&white=5&clear=1&size=2" "http://10.0.0.50/" swap $+ http.get ..
-
-#"rect?x=10&y=1&h=32&w=20&color=10" "http://10.0.0.50/" swap $+ http.get ..
-"print?text=Hello+&white=0&clear=1&size=1" "http://10.0.0.50/" swap $+ http.get ..
-"print?line=3&text=Hello+&white=0&clear=0&size=2" "http://10.0.0.50/" swap $+ http.get ..
-
-"cursor?x=10&y=4" esp32.send
-"print?text=Hello" esp32.send
-
-"servo?init=10" esp32.send ;
-"servo?deg=120" esp32.send ;
-
-"inline" esp32.send ;
 
 "gpio" esp32.send ;
 
@@ -315,10 +266,6 @@ TFT_VIOLET .. ;
 "led_flash?n=10" esp32.send
 "gpio?pin=2" esp32.send ;
 
-"servo?init=10" esp32.send ;
-
-"servo?deg=90" esp32.send ;
-
 # test include
   "Library.for" file.include
   "Initialized." . CR
@@ -328,37 +275,226 @@ TFT_VIOLET .. ;
 
 "reset" esp32.send ;
 
-:TestLine ( Testing Line )
-"print?clear=1" esp32.send
-"line?x1=0&y1=10&x2=80&y2=10&color=1" esp32.send
-"line?x1=0&y1=12&x2=100&y2=12&wait=1" esp32.send
-"line?x1=0&y1=15&x2=130&y2=15&wait=1" esp32.send
-"line?x1=1&y1=20&x2=100&y2=10&wait=1" esp32.send
-"line?x1=1&y1=22&x2=100&y2=12" esp32.send
-;
-
 :TestRect ( Testing Rectangle )
-"rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
-"rect?x=00&y=20&h=10&w=10&color=1&fill=0&wait=1" esp32.send
-"rect?x=20&y=10&h=10&w=20color=1&fill=1&wait=1" esp32.send
-"rect?x=60&y=10&h=20&w=10&color=1&fill=0&r=10&wait=1" esp32.send
-"rect?x=80&y=10&h=20&w=20color=1&fill=1&r=20&wait=1" esp32.send
-"rect?x=85&y=19&h=10&w=10&color=0&fill=1&r=20&wait=1" esp32.send
-"rect?x=20&y=25&h=1&w=20color=1&fill=1" esp32.send
+"draw?x=0&y=10&h=30&w=100&color=0&fill=1&rect=1"
+  esp32.send
+"draw?x=20&y=10&h=10&w=20&color=1&fill=1&rect=1&x=80&y=10&h=20&w=20&color=1&r=20&fill=1&rect=1"
+  esp32.send
+"draw?x=85&y=19&h=10&w=10&color=0&r=20&fill=1&rect=1&x=20&y=25&h=10&w=20&color=1&fill=1&rect=1"
+  esp32.send
+"draw?x=00&y=20&h=10&w=10&color=1&fill=0&rect=1&x=60&y=10&h=20&w=10&color=1&r=10&rect=1"
+  esp32.send
 ;
 
 :eyes (draw 2 eyes)
-"rect?x=0&y=10&h=20&w=100&color=0&fill=1" esp32.send
-10 eye
-35 eye
-"print" esp32.send
+"draw?x=0&y=10&h=28&w=127&color=0&fill=1&r=0&rect=1" esp32.send
+60 (x pos of whites)
+dup
+dup "draw?h=20&w=20&color=1&fill=1&r=20&y=10&x=:X&rect=0" ":X" $replace esp32.send
+25 (x gap of whites)
++ "draw?x=:X&rect=1" ":X" $replace esp32.send
+
+5 (x pos of blacks relative to whites)
++ dup
+18 (y pos of blacks)
+"draw?h=10&w=10&color=0&fill=1&r=20&y=:Y&x=:X&rect=0" ":Y" $replace ":X" $replace esp32.send
+25 (x gap of blacks)
++ "draw?x=:X&rect=1" ":X" $replace esp32.send
 ;
 
-:eye ([x] --)
-  dup
-  to$ "rect?h=20&w=20&color=1&fill=1&r=20&y=10&wait=1&x=" swap $+ esp32.send
-  5 +
-  to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=19&wait=1&x=" swap $+ esp32.send
-  #to$ "rect?h=10&w=10&color=0&fill=1&r=20&y=15&wait=1&x=" swap $+ esp32.send
+
+(Test placer)
+null 44 "[q]" 33 ":x:" 1 ":z:" ":x:qwe-[q]-rty:z:" placer " = " . . .stack ;
+
+:placer ( [null] [value] [token] [main string] -- [main string])
+ begin swap dup ?null ! if $replace loop drop ;
+
+(==== Servo ================)
+
+panel_start2: (add functions to the Run selector )
+"servo_initialize" "selRun" panel.addOption
+"pen_up" "selRun" panel.addOption
+"pen_down" "selRun" panel.addOption
+"servo_reset" "selRun" panel.addOption
+"servo_mid" "selRun" panel.addOption
+"servo_far" "selRun" panel.addOption
+"draw_sample" "selRun" panel.addOption
+"draw_sample1" "selRun" panel.addOption
+"draw_sample2" "selRun" panel.addOption
 ;
+
+
+"servo?steps=1&delay=50" esp32.send ;
+
+:PL 5 ; (left pin 5)
+:PR 4 ; (right pin 4)
+:PC 32 ; (pin 32)
+:c "7" ; (center pin 32)
+:l "3" ; (left pin 5)
+:r "2" ; (right pin 4)
+
+:lMax 85 ; (left max)
+:lMin 30 ; (left min )
+:rMax 150 ; (right max)
+:rMin 95 ; (right min)
+:l_reset lMin ; (left reset) 15
+:r_reset rMax ; (right reset) 155
+:c_reset 90 ; (up)
+:c_down 35 ;
+:c_mid 60 ;
+
+(test speed)([VL] [VR] --)
+10 20
+l r "servo?steps:L=:VL&steps:R=:VR&delay=2" ":R" $replace ":L" $replace ":VR" $replace ":VL" $replace 
+dup .. esp32.send ;
+
+:servo.send (send to servo)
+  "servo?" swap $+
+  dup . " > " .
+  esp32.send
+  "delay" panel.getValue $num 0 > if "delay" panel.getValue $num sleep endif
+  ;
+
+:servo_initialize (initialize)
+  PL l PR r PC c "pin:L=:PL&pin:R=:PR&pin:C=:PC"
+  ":C" $replace ":PC" $replace
+  ":R" $replace ":PR" $replace
+  ":L" $replace ":PL" $replace
+  servo.send
+  l lMin lMax servoMinMax
+  r rMin rMax servoMinMax
+  set_speen
+  set_delay
+  servo_reset
+  "Servos initialized.\n" . ;
+
+:servoMinMax ([servo#] [min] [max])
+  "min:S=:MI&max:S=:MA" ":MA" $replace ":MI" $replace ":S" $replace
+  servo.send ;
+
+:set_speed 2 (1|2|..)
+  null swap ":V" l ":L" r ":R" "steps:L=:V&steps:R=:V" placer servo.send ;
+
+:set_delay 10
+  "delay=:V" ":V" $replace servo.send ;
+
+:pen_up
+  c_reset c "deg:S=:D&go=1" ":S" $replace ":D" $replace
+  servo.send ;
+
+:pen_down
+  c_down c "deg:S=:D&go=1" ":S" $replace ":D" $replace
+  servo.send ;
+
+:pen_mid
+  c_mid c "deg:S=:D&go=1" ":S" $replace ":D" $replace
+  servo.send ;
+
+  50 c "deg:S=:D&go=1" ":S" $replace ":D" $replace
+  servo.send ;
+
+:serveX ([# angle] [$ servo number] --)
+  "deg#=@" "#" $replace "@" $replace
+  servo.send ;
+
+:servoLR ([# angle left] [# angle right] --)
+  l r "deg:L=:VL&deg:R=:VR" ":R" $replace ":L" $replace ":VR" $replace ":VL" $replace
+  servo.send ;
+
+:addLR
+  l r "add:L=:VL&add:R=:VR" ":R" $replace ":L" $replace ":VR" $replace ":VL" $replace
+  servo.send ;
+
+
+lMax l serveX
+lMin l serveX
+rMin r serveX
+rMax r serveX
+lMax rMin servoLR
+lMin rMax servoLR ;
+
+:servo_far (min)
+  90 90 servoLR ;
+
+(reset)
+:servo_reset
+  c "steps:C=3" ":C" $replace servo.send
+  c_reset c serveX
+  l_reset r_reset servoLR
+  "Servos reset.\n" . ;
+
+(mid1)
+45 125 servoLR ;
+50 120 servoLR ;
+55 115 servoLR ;
+
+
+:draw_sample (sample draw)
+servo_reset
+\pen_down
+\30 140
+\35 l serveX 135 r serveX
+40 130 servoLR
+pen_down
+45 l serveX 125 r serveX
+50 l serveX 120 r serveX
+55 l serveX 115 r serveX
+pen_up
+servo_reset
+;
+
+lMax l serveX ;
+lMin l serveX ;
+rMax r serveX ;
+rMin r serveX ;
+
+
+:draw_sample1 (sample draw)
+  servo_reset
+  40 130 servoLR
+  pen_down
+  45 125 servoLR
+  10 0 do
+    5 3 addLR
+  loop
+
+  10 0 do
+    -3 -5 addLR
+  loop
+  servo_reset
+;
+50 l serveX 120 r serveX
+55 l serveX 115 r serveX
+pen_up
+servo_reset
+;
+
+:draw_sample2 (sample draw)
+servo_reset
+40 130 servoLR
+pen_down
+45 140 servoLR
+45 l serveX 125 r serveX
+50 l serveX 120 r serveX
+55 l serveX 115 r serveX
+pen_up
+servo_reset
+;
+
+:draw_sample2 (sample draw)
+servo_reset
+pen_down
+60 120 servoLR
+pen_up
+servo_reset
+pen_down
+80 100 servoLR
+pen_up
+servo_reset
+;
+
+
+(mid)
+:servo_mid
+90 90 servoLR ;
 
