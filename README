@@ -3,7 +3,8 @@ Written by Joseph Dizon rbdizon@yahoo.com
 
 Explorer_Comm is a desktop application written in Java. Its purpose is to run scripts written in Forth.
 This can be useful for automating communication with a target device such as ESP32.
-Communication can be done using text commands sent through serial port or HTTP request
+Control and test your display, servo, GPIO pins in the ESP32 instantly without compiling and uploading.
+Communication can be done using text commands sent through wifi or serial port.
 
 System Requirement: Java (Both JDK 21 and JRE)
 Some knowledge of the Forth language is necessary
