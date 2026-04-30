@@ -33,10 +33,10 @@ Although there are some differences in the implementation.
   [true|false] if ... endif
 
   [true|false] while ... [true|false] loop
-  [true|false] while ... [true|false] [#] loop+
+  [true|false] while ... [true|false] [#] +loop
 
   [end] [start] do ... loop
-  [end] [start] do ... [#] loop+
+  [end] [start] do ... [#] +loop
 
   begin [true|false] if ... loop
-  begin [true|false] if ... [#] loop+
+  begin [true|false] if ... [#] +loop
