@@ -307,7 +307,7 @@ dup "draw?h=20&w=20&color=1&fill=1&r=20&y=10&x=:X&rect=0" ":X" $replace esp32.se
 null 44 "[q]" 33 ":x:" 1 ":z:" ":x:qwe-[q]-rty:z:" placer " = " . . .stack ;
 
 :placer ( [null] [value] [token] [main string] -- [main string])
- begin swap dup ?null ! if $replace loop drop ;
+ begin swap dup ?null not if $replace loop drop ;
 
 (==== Servo ================)
 
