@@ -179,11 +179,11 @@ true while " i=" . i .red i 20 < 2 +loop .stack ;
 12 34 45 3 array.make
 "size= " .. dup array.size .
 "string= " .. "|" array.to$ .
-
+;
 (Demo placer)
 null 44 "[q]" 33 ":x:" 1 ":z:" ":x:qwe-[q]-rty:z:" placer " = " . . .stack ;
 
 :placer ( [null] [value 1] [token 1] ... [value n] [token n] [main string] -- [main string])
- begin swap dup ?null ! if $replace loop drop ;
+ begin swap dup ?null not if $replace loop drop ;
 
 
