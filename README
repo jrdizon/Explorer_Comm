@@ -1,7 +1,7 @@
 # Explorer_Comm
 Written by Joseph Dizon rbdizon@yahoo.com
 
-Explorer_Comm is a desktop application written in Java. Its purpose is to run scripts written in Forth.
+Forth_Explorer is a desktop application written in Java. Its purpose is to run scripts written in Forth.
 This can be useful for automating communication with a target device such as ESP32.
 Control and test your display, servo, GPIO pins in the ESP32 instantly without compiling and uploading.
 Communication can be done using text commands sent through wifi or serial port.
@@ -10,16 +10,16 @@ System Requirement: Java (Both JDK 21 and JRE)
 Some knowledge of the Forth language is necessary
 
 Download and put (or unzip) all the files in the same folder.
-To start the app in Linux, execute the file "Explorer_Comm.sh".
+To start the app in Linux, execute the file "Forth_Explorer.sh".
 In Windows, doubleclick the file "Explorer_Comm.jar" (assuming Java is the default for .jar files).
 
 The upper text window is the input or script editor contains the script.
 The lower text window is the output contains the result of the script.
 
-The included "ESP32.for" is a script file written in Forth to comminicate with an ESP32 device. ESP32.for is a collection of short functions separated by semicolon (;).
+The included "Demo.for" is a script file written in Forth to comminicate with an ESP32 device. Demo.for is a collection of short functions separated by semicolon (;).
 The ESP32 device should have uploaded the included .ino file in the ESP32 folder.
 
-Open the Forth file "ESP32.for". The script will appear in the upper window. The script can be edited in the upper window.
+Open the Forth file "Demo.for". The script will appear in the upper window. The script can be edited in the upper window.
 
 A "start" function is include that will create a small dashboard to facilitate running other functions.
 To run the "start" function, click the 'Run "start"' button.
@@ -32,12 +32,10 @@ Although there are some differences in the implementation.
 
 # Ifs & Loops:
   [true|false] if ... endif
-
-  [true|false] while ... [true|false] loop
-  [true|false] while ... [true|false] [#] +loop
+  [true|false] if ... else ... endif
 
   [end] [start] do ... loop
   [end] [start] do ... [#] +loop
 
-  begin [true|false] if ... loop
-  begin [true|false] if ... [#] +loop
+  begin [true|false] while ... loop
+  begin [true|false] while ... [#] +loop
