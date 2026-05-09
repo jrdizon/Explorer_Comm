@@ -851,7 +851,6 @@ void setup_servo()
   }
   catch (const std::exception& e) {
     Serial.println("Error initializing servo: " + String(e.what()));
-    //server.send(400, content_type, "Invalid servo initialization: " + String(e.what()));
     respServo += "\nError: " + String(e.what());
     respServo += "\n";
     server.send(200, content_type, "Error: "+argName+":"+argVal+":"+respServo);
