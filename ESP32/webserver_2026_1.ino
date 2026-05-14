@@ -46,7 +46,7 @@
 #include "freertos/task.h"
 
 #include <ESP32Servo.h>
-#include <secret.h>
+#include <secret.h> //This contains ssid and password
 
 //ESP32-C3
   #define ESP32C3_led 8
@@ -321,6 +321,38 @@ void setup_Server()
       delay(200);
     }
     server.send(200, content_type, "LED:FLASHED:" + sCnt);
+  });
+}
+
+void setup_I2C()
+{
+  server.on("/i2c", HTTP_GET, [](){
+
+    int wid = serverGetInt("width");
+    int hei = serverGetInt("height");
+    int sda = serverGetInt("sda");
+    int scl = serverGetInt("scl");
+
+    if (wid == 0) wid = SCREEN_WIDTH;
+    if (hei == 0) hei = SCREEN_HEIGHT;
+    if (sda == 0) sda = isESP32C3 ? ESP32C3_sda : ESP32_sda;
+    if (scl == 0) scl = isESP32C3 ? ESP32C3_scl : ESP32_scl;    
+  
+    server.send(200, content_type, "I2C initialized with width: " + String(wid) + ", height: " + String(hei) + ", SDA: " + String(sda) + ", SCL: " + String(scl));
+
+    //I2C is initialized by the display library, but you can also initialize it here if needed
+    //Wire.begin(); // For default SDA and SCL pins
+    Wire.setPins(sda, scl); //Custom pin for display
+    Adafruit_SSD1306 display(wid, hei, &Wire, OLED_RESET);
+    display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.setTextColor(SSD1306_WHITE); // Draw white text
+    display.print("Static IP: ");
+    display.println(WiFi.localIP());
+    display.display();
   });
 }
 
