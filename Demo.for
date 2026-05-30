@@ -97,7 +97,7 @@ stack: .stack ;
 :.purple ([$] --) 127 0 127 .color ;
 :.green ([$] --) 0 200 0 .color ;
 
-.errorColor: ([string] --) dup "Error" $contains if CR 200 0 0 .color else 0 120 0 .color endif ;
+.errorColor: ([string] --) dup "Error" $contains if 200 0 0 .color CR else 0 120 0 .color endif ;
 
 :.green 0 150 0 .color ;
 
@@ -123,7 +123,7 @@ debug_on
 begin " i=" . i . loop ;
 
 (Test finite loops)
-begin i 10 <= while " i=" .green i .red loop .stack ;
+begin i 10 <= while " i=" .green i .red ." rnd=" 100 random . loop .stack ;
 
 begin i 20 <= if " i=" . i .red loop .stack ; (if can also be used instead of while)
 
@@ -148,8 +148,8 @@ null 44 "[q]" 33 ":x:" 1 ":z:" ":x:qwe-[q]-rty:z:" replacer ." = " . .stack ;
 
 esp32.send: ([query] --)
 "inpHttp" panel.getValue swap $+
-  dup CR ."Send: " . ." > "
-  http.get .errorColor CR
+  dup CR ."Send: " . CR
+  http.get .errorColor
   \.stack
 ;
 
@@ -171,6 +171,27 @@ goFuncX: panel.getValue dup .. CR execWord ;
 
 #--------------------------------------
 
+Setup i2c Display
+Sample: "i2c?width=128&height=32&scl=23&sda=21" esp32.send ;
+
+:i2c_64 (For 0.96 display, set i2c to height=64)
+  "i2c?height=64" esp32.send ;
+
+#----------------------------------
+
+:TestRect ( Testing Rectangles )
+"draw?x=0&y=10&h=30&w=100&color=0&fill=1&rect=1"
+  esp32.send
+"draw?x=20&y=10&h=10&w=20&color=1&fill=1&rect=1&x=80&y=10&h=20&w=20&color=1&r=20&fill=1&rect=1"
+  esp32.send
+"draw?x=85&y=19&h=10&w=10&color=0&r=20&fill=1&rect=1&x=20&y=25&h=10&w=20&color=1&fill=1&rect=1"
+  esp32.send
+"draw?x=00&y=20&h=10&w=10&color=1&fill=0&rect=1&x=60&y=10&h=20&w=10&color=1&r=10&rect=1"
+  esp32.send
+;
+
+#----
+
 :eyes (draw 2 eyes)
 "draw?x=0&y=10&h=28&w=127&color=0&fill=1&r=0&rect=1" esp32.send
 60 (x pos of whites)
@@ -185,19 +206,6 @@ dup "draw?h=20&w=20&color=1&fill=1&r=20&y=10&x=:X&rect=0" ":X" $replace esp32.se
 "draw?h=10&w=10&color=0&fill=1&r=20&y=:Y&x=:X&rect=0" ":Y" $replace ":X" $replace esp32.send
 25 (x gap of blacks)
 + "draw?x=:X&rect=1" ":X" $replace esp32.send
-;
-
-#----------------------------------
-
-:TestRect ( Testing Rectangle )
-"draw?x=0&y=10&h=30&w=100&color=0&fill=1&rect=1"
-  esp32.send
-"draw?x=20&y=10&h=10&w=20&color=1&fill=1&rect=1&x=80&y=10&h=20&w=20&color=1&r=20&fill=1&rect=1"
-  esp32.send
-"draw?x=85&y=19&h=10&w=10&color=0&r=20&fill=1&rect=1&x=20&y=25&h=10&w=20&color=1&fill=1&rect=1"
-  esp32.send
-"draw?x=00&y=20&h=10&w=10&color=1&fill=0&rect=1&x=60&y=10&h=20&w=10&color=1&r=10&rect=1"
-  esp32.send
 ;
 
 
@@ -232,16 +240,23 @@ dup .. esp32.send ;
   "delay" panel.getValue $num 0 > if "delay" panel.getValue $num sleep endif
   ;
 
-:servo_initialize (initialize)
-  PL l PR r PC c "pin:L=:PL&pin:R=:PR&pin:C=:PC"
+:servo_initialize (initialize 3 servos)
+  set_speed
+  set_delay
+  (initalize center servo)
+  PC c "pin:C=:PC"
   ":C" $replace ":PC" $replace
+  servo.send
+  pen_down
+  pen_up
+  (initialize left and right servos)
+  PL l PR r "pin:L=:PL&pin:R=:PR"
   ":R" $replace ":PR" $replace
   ":L" $replace ":PL" $replace
   servo.send
+
   l lMin lMax servoMinMax
   r rMin rMax servoMinMax
-  set_speed
-  set_delay
   servo_reset
   "Servos initialized.\n" . ;
 
