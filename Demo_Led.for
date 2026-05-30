@@ -38,8 +38,8 @@ esp32Url "gpio?pin=15&val=1" $+ http.get . ; (set GPIO pin to high)
   "eyes00" 3 timer.start ;
 
 :eyes00
-"draw?x=0&y=10&h=28&w=127&color=0&fill=1&r=0&rect=1" esp32.send
-60 (x pos of whites)
+"draw?x=0&y=0&h=32&w=127&color=0&fill=1&r=0&rect=1" esp32.send
+30 (x pos of whites)
 dup
 dup "draw?h=20&w=20&color=1&fill=1&r=20&y=10&x=:X&rect=0" ":X" $replace esp32.send
 25 (x gap of whites)
